@@ -24,12 +24,10 @@ workflows:
       - name: Fetch project package dependencies
         script: |
           flutter pub get
-      - name: Cache Flutter dependencies
-        script: |
-          flutter pub cache repair
       - name: Run code validation checks and linter analysis
         script: |
-      - name: Run Flutter validation tests --no-fatal-infos
+          flutter analyze --no-fatal-infos
+      - name: Run Flutter validation tests
         script: |
           flutter test
       - name: Install iOS pods (if needed)
