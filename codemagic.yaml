@@ -1,19 +1,55 @@
-scripts:
+workflows:
+  saad-bot-pipeline:
+    name: Saad Trading Bot Production Engine Build
+    instance_type: mac_mini_m1
+    max_build_duration: 75
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: '*'
+          include: true
+    scripts:
       - name: Recreate Android platform configuration (Fix v1 embedding)
         script: |
-          # 1. Clear out the legacy embedding files
+          # 1. Clear out the legacy embedding files completely
           rm -rf android
           
-          # 2. Re-generate a fresh, modern v2-compliant Android configuration
+          # 2. Re-generate a fresh, modern v2-compliant Android configuration framework
           flutter create --platforms=android .
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
           
-          # 3. Inject the production internet permission required for your Bybit API connection
+          # 3. Inject the production internet permission required for Bybit API network loops
           sed -i '' 's|<manifest xmlns:android="http://schemas.android.com/apk/res/android">|<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.INTERNET"/>|g' android/app/src/main/AndroidManifest.xml
-          
       - name: Clean previous builds
         script: |
           flutter clean
       - name: Fetch project package dependencies
         script: |
           flutter pub get
+      - name: Run code validation checks and linter analysis (ignore deprecation warnings)
+        script: |
+          flutter analyze --no-fatal-infos
+      - name: Run Flutter validation tests (if any)
+        script: |
+          if [ -d "test" ]; then flutter test; else echo "⚠️ No test folder found, skipping tests."; fi
+      - name: Install iOS pods (if iOS folder exists)
+        script: |
+          if [ -d "ios" ]; then cd ios && pod install && cd ..; else echo "⚠️ iOS folder not found, skipping pod install."; fi
+      - name: Build Android Release APK (split per ABI)
+        script: |
+          flutter build apk --release --split-per-abi
+      - name: Build Android Production App Bundle (AAB)
+        script: |
+          flutter build appbundle --release
+      - name: Build iOS Unsigned Device Package Bundle (if iOS folder exists)
+        script: |
+          if [ -d "ios" ]; then flutter build ios --release --no-codesign --verbose; else echo "⚠️ iOS folder not found, skipping iOS build."; fi
+    artifacts:
+      - 'build/app/outputs/apk/release/*.apk'
+      - 'build/app/outputs/bundle/release/*.aab'
+      - 'build/ios/iphoneos/*.app'
