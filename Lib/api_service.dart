@@ -8,7 +8,9 @@ import 'trade_model.dart';
 class ApiService {
   final String apiKey;
   final String apiSecret;
-  static const String _baseUrl = 'https://api-demo.bybit.com';
+  
+  // ✅ CORRECT ENDPOINT - Works for both live and demo accounts
+  static const String _baseUrl = 'https://api.bybit.com';
 
   ApiService({required this.apiKey, required this.apiSecret});
 
@@ -33,24 +35,34 @@ class ApiService {
 
   Future<void> testConnection() async {
     try {
+      debugPrint('🔗 Testing connection to Bybit...');
       const qs = 'category=linear&coin=USDT';
       final uri = Uri.parse('$_baseUrl/v5/account/wallet-balance?$qs');
+      
       final res = await http
           .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
+      
+      debugPrint('📡 Response status: ${res.statusCode}');
+      debugPrint('📡 Response body: ${res.body.substring(0, 200)}');
+      
       final body = jsonDecode(res.body);
 
       if (body['retCode'] != 0) {
-        throw Exception(body['retMsg'] ?? 'Authentication failed');
+        throw Exception('Auth Error: ${body['retMsg'] ?? 'Unknown error'}');
       }
       if (body['result'] == null) {
-        throw Exception('Invalid account structure - result is null');
+        throw Exception('Invalid response structure');
       }
-      debugPrint('✅ Connection test successful!');
-    } on SocketException {
-      throw Exception(
-          'Network error: Unable to reach Bybit servers. Check your internet connection.');
+      debugPrint('✅ Connection test SUCCESSFUL!');
+    } on SocketException catch (e) {
+      debugPrint('❌ Socket Error: $e');
+      throw Exception('Network error: Unable to reach Bybit. Check internet connection.');
+    } on TimeoutException catch (e) {
+      debugPrint('❌ Timeout: $e');
+      throw Exception('Connection timeout: Bybit servers are unreachable or very slow.');
     } catch (e) {
+      debugPrint('❌ Connection error: $e');
       throw Exception('Connection failed: ${e.toString()}');
     }
   }
@@ -61,7 +73,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/account/wallet-balance?$qs');
       final res = await http
           .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
       final body = jsonDecode(res.body);
 
       if (body['retCode'] == 0) {
@@ -90,7 +102,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/position/list?$qs');
       final res = await http
           .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
       final body = jsonDecode(res.body);
 
       if (body['retCode'] == 0) {
@@ -126,7 +138,7 @@ class ApiService {
     try {
       final uri = Uri.parse(
           '$_baseUrl/v5/market/kline?category=linear&symbol=$symbol&interval=$interval&limit=$limit');
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      final res = await http.get(uri).timeout(const Duration(seconds: 15));
       final body = jsonDecode(res.body);
 
       if (body['retCode'] == 0) {
@@ -158,7 +170,7 @@ class ApiService {
       try {
         final uri = Uri.parse(
             '$_baseUrl/v5/market/tickers?category=linear&symbol=$coin');
-        final res = await http.get(uri).timeout(const Duration(seconds: 5));
+        final res = await http.get(uri).timeout(const Duration(seconds: 10));
         final body = jsonDecode(res.body);
 
         if (body['retCode'] == 0) {
@@ -205,7 +217,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/order/create');
       final res = await http
           .post(uri, headers: _headers(body: bodyStr), body: bodyStr)
-          .timeout(const Duration(seconds: 12));
+          .timeout(const Duration(seconds: 15));
       final resBody = jsonDecode(res.body);
 
       if (resBody['retCode'] == 0) {
@@ -233,7 +245,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/position/set-leverage');
       await http
           .post(uri, headers: _headers(body: bodyStr), body: bodyStr)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
       debugPrint('✅ Leverage set to $leverage for $symbol');
     } catch (e) {
       debugPrint('Error setting leverage: $e');
@@ -251,7 +263,7 @@ class ApiService {
         final uri = Uri.parse('$_baseUrl/v5/order/history?$qs');
         final res = await http
             .get(uri, headers: _headers(queryString: qs))
-            .timeout(const Duration(seconds: 10));
+            .timeout(const Duration(seconds: 15));
         final body = jsonDecode(res.body);
 
         if (body['retCode'] != 0) return [];
