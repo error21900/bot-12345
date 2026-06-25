@@ -82,7 +82,6 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _statusMsg = '✅ Credentials found. Auto-logging in...');
 
         await Future.delayed(const Duration(milliseconds: 500));
-        // FIX: Guard with mounted check before calling async navigation
         if (mounted) {
           _handleConnect(autoLogin: true);
         }
@@ -202,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00C087).withOpacity(0.3),
+                          color: const Color(0xFF00C087).withValues(alpha: 0.3),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -274,12 +273,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: _statusMsg.contains('❌')
-                        ? Colors.red.withOpacity(0.1)
-                        : const Color(0xFF00C087).withOpacity(0.1),
+                        ? Colors.red.withValues(alpha: 0.1)
+                        : const Color(0xFF00C087).withValues(alpha: 0.1),
                     border: Border.all(
                       color: _statusMsg.contains('❌')
-                          ? Colors.red.withOpacity(0.5)
-                          : const Color(0xFF00C087).withOpacity(0.5),
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : const Color(0xFF00C087).withValues(alpha: 0.5),
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
