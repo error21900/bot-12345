@@ -35,7 +35,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted) return;
     final provider = Provider.of<TradingProvider>(context, listen: false);
     if (state == AppLifecycleState.resumed) {
-      // FIX: Only restart if not already running to prevent double-start
       if (!provider.isRunning) {
         provider.startBot();
       }
@@ -57,8 +56,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: p.isRunning
-                    ? const Color(0xFF00C087).withOpacity(0.15)
-                    : Colors.red.withOpacity(0.15),
+                    ? const Color(0xFF00C087).withValues(alpha: 0.15)
+                    : Colors.red.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                     color:
@@ -223,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 decoration: BoxDecoration(
                   color: const Color(0xFF141B2D),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.01)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.01)),
                 ),
                 child: Column(
                   children: ['BTCUSDT', 'SOLUSDT', 'LINKUSDT', 'XRPUSDT']
@@ -234,7 +233,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                     final price =
                         double.tryParse(priceRaw?.toString() ?? '') ?? 0.0;
-                    // FIX: price24hPcnt from Bybit is already a decimal (e.g. 0.0123 = 1.23%)
                     final changeDecimal =
                         double.tryParse(changeRaw?.toString() ?? '') ?? 0.0;
                     final changePct = changeDecimal * 100;
@@ -279,8 +277,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isUp
-                                      ? const Color(0xFF00C087).withOpacity(0.15)
-                                      : Colors.red.withOpacity(0.15),
+                                      ? const Color(0xFF00C087).withValues(alpha: 0.15)
+                                      : Colors.red.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -369,7 +367,7 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: enabled ? color.withOpacity(0.12) : Colors.grey[900],
+          color: enabled ? color.withValues(alpha: 0.12) : Colors.grey[900],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: enabled ? color : Colors.grey[800]!,
@@ -417,7 +415,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF141B2D),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +424,7 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
+              color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: iconColor, size: 18),
@@ -472,7 +470,7 @@ class _SectionTitle extends StatelessWidget {
           padding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF00C087).withOpacity(0.12),
+            color: const Color(0xFF00C087).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
