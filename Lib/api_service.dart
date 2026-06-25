@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';  // <-- added for debugPrint
 import 'trade_model.dart';
 
 class ApiService {
@@ -294,8 +295,4 @@ class ApiService {
   }
 }
 
-// Re-export for convenience so main.dart's SocketException catch still works
-void debugPrint(String msg) {
-  // ignore: avoid_print
-  print(msg);
-}
+// === REMOVED: custom debugPrint function (now using Flutter's built-in) ===
