@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';  // <-- added for debugPrint
+import 'package:flutter/foundation.dart';  // ✅ added for debugPrint
 import 'trade_model.dart';
 
 class ApiService {
@@ -295,4 +295,4 @@ class ApiService {
   }
 }
 
-// === REMOVED: custom debugPrint function (now using Flutter's built-in) ===
+// ❌ REMOVED the custom debugPrint – we use Flutter's built-in one.
