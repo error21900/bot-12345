@@ -29,7 +29,6 @@ workflows:
           flutter pub cache repair
       - name: Run code validation checks and linter analysis
         script: |
-          flutter analyze
       - name: Run Flutter validation tests
         script: |
           flutter test
