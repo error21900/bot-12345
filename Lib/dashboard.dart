@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'trade_model.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -19,7 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       try {
         Provider.of<TradingProvider>(context, listen: false).startBot();
       } catch (e) {
-        print('Error starting bot: $e');
+        debugPrint('Error starting bot: $e');
       }
     });
   }
@@ -35,7 +35,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!mounted) return;
     final provider = Provider.of<TradingProvider>(context, listen: false);
     if (state == AppLifecycleState.resumed) {
-      // FIX: Only restart if not already running to prevent double-start
       if (!provider.isRunning) {
         provider.startBot();
       }
@@ -57,8 +56,8 @@ class _DashboardScreenState extends State<DashboardScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: p.isRunning
-                    ? const Color(0xFF00C087).withOpacity(0.15)
-                    : Colors.red.withOpacity(0.15),
+                    ? const Color(0xFF00C087).withValues(alpha: 0.15)
+                    : Colors.red.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                     color:
@@ -100,7 +99,6 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Control Buttons
               Row(children: [
                 Expanded(
                   child: _ActionButton(
@@ -136,7 +134,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(height: 20),
 
-              // Balance Cards
               Row(
                 children: [
                   Expanded(
@@ -165,7 +162,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(height: 20),
 
-              // Timeframe Selector
               const Text(
                 'Active Indicator Evaluation Interval',
                 style: TextStyle(
@@ -215,7 +211,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(height: 24),
 
-              // Live Market Tickers
               const _SectionTitle(title: 'Live Market Tickers', count: 4),
               const SizedBox(height: 10),
               Container(
@@ -223,7 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 decoration: BoxDecoration(
                   color: const Color(0xFF141B2D),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withOpacity(0.01)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.01)),
                 ),
                 child: Column(
                   children: ['BTCUSDT', 'SOLUSDT', 'LINKUSDT', 'XRPUSDT']
@@ -234,7 +229,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
                     final price =
                         double.tryParse(priceRaw?.toString() ?? '') ?? 0.0;
-                    // FIX: price24hPcnt from Bybit is already a decimal (e.g. 0.0123 = 1.23%)
                     final changeDecimal =
                         double.tryParse(changeRaw?.toString() ?? '') ?? 0.0;
                     final changePct = changeDecimal * 100;
@@ -279,8 +273,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isUp
-                                      ? const Color(0xFF00C087).withOpacity(0.15)
-                                      : Colors.red.withOpacity(0.15),
+                                      ? const Color(0xFF00C087).withValues(alpha: 0.15)
+                                      : Colors.red.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -304,7 +298,6 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               const SizedBox(height: 24),
 
-              // Live Positions
               _SectionTitle(
                   title: 'Live Managed Positions',
                   count: provider.positions.length),
@@ -319,7 +312,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ...provider.positions.values.map((p) => _PositionCard(pos: p)),
               const SizedBox(height: 24),
 
-              // Trade History
               _SectionTitle(
                   title: 'Executed Orders History',
                   count: provider.trades.length),
@@ -348,8 +340,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-// ==================== UI Components ====================
-
 class _ActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -369,7 +359,7 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: enabled ? color.withOpacity(0.12) : Colors.grey[900],
+          color: enabled ? color.withValues(alpha: 0.12) : Colors.grey[900],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: enabled ? color : Colors.grey[800]!,
@@ -417,7 +407,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF141B2D),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +416,7 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
+              color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: iconColor, size: 18),
@@ -472,7 +462,7 @@ class _SectionTitle extends StatelessWidget {
           padding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF00C087).withOpacity(0.12),
+            color: const Color(0xFF00C087).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
