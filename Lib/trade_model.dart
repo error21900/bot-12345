@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'api_service.dart';
 
-// ===============================================================
-// DATA MODELS
-// ===============================================================
 class Trade {
   final String symbol;
   final String direction;
@@ -38,14 +35,12 @@ class Position {
   });
 }
 
-// ===============================================================
-// TRADING PROVIDER
-// ===============================================================
 class TradingProvider extends ChangeNotifier {
   ApiService? _api;
 
   bool _isRunning = false;
   bool _isInitialized = false;
+  bool _isFetching = false; // Concurrency gate variable
   double _balance = 0.0;
   double _totalPnL = 0.0;
   String _lastUpdate = '--:--:--';
@@ -55,14 +50,13 @@ class TradingProvider extends ChangeNotifier {
   Map<String, Position> _positions = {};
   List<Trade> _trades = [];
   Map<String, dynamic> _livePrices = {
-    'BTCUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-    'SOLUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-    'LINKUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-    'XRPUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
+    'BTCUSDT': {'price': '0.00', 'change': '0.00%'},
+    'ETHUSDT': {'price': '0.00', 'change': '0.00%'},
+    'SOLUSDT': {'price': '0.00', 'change': '0.00%'},
   };
+
   Timer? _timer;
 
-  // Getters
   bool get isRunning => _isRunning;
   bool get isInitialized => _isInitialized;
   double get balance => _balance;
@@ -74,39 +68,25 @@ class TradingProvider extends ChangeNotifier {
   List<Trade> get trades => _trades;
   Map<String, dynamic> get livePrices => _livePrices;
 
-  void initialize(ApiService api) {
-    try {
-      _api = api;
-      _isInitialized = true;
-      _statusMsg = 'Ready to start';
-      debugPrint('✅ TradingProvider initialized successfully');
-      notifyListeners();
-    } catch (e) {
-      _statusMsg = 'Initialization error: $e';
-      debugPrint('❌ Initialization error: $e');
-      notifyListeners();
-    }
+  void setTimeframe(String value) {
+    _selectedTimeframe = value;
+    notifyListeners();
   }
 
-  void updateTimeframe(String timeframe) {
-    _selectedTimeframe = timeframe;
-    _statusMsg = 'Timeframe switched to ${timeframe}M';
+  void initialize(String apiKey, String apiSecret) {
+    _api = ApiService(apiKey: apiKey, apiSecret: apiSecret);
+    _isInitialized = true;
+    _statusMsg = 'API Configured Ready';
     notifyListeners();
   }
 
   void startBot() {
-    if (!_isInitialized) {
-      _statusMsg = 'Bot not initialized. Please log in again.';
-      notifyListeners();
-      return;
-    }
     if (_isRunning) return;
-
     _isRunning = true;
     _statusMsg = 'Bot is RUNNING';
     WakelockPlus.enable();
     notifyListeners();
-    _startPolling();
+    _startLoop();
   }
 
   void stopBot() {
@@ -117,9 +97,7 @@ class TradingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void cancelPolling() => _timer?.cancel();
-
-  void _startPolling() {
+  void _startLoop() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
   }
@@ -130,6 +108,10 @@ class TradingProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
+    // Safety Engine: Block concurrent sync processes if network slows down
+    if (_isFetching) return;
+    _isFetching = true;
 
     try {
       final results = await Future.wait([
@@ -160,19 +142,12 @@ class TradingProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      // FIX: Safe substring — avoids RangeError when error string is short
       final errStr = e.toString();
-      _statusMsg =
-          'Error: ${errStr.length > 60 ? '${errStr.substring(0, 60)}...' : errStr}';
-      debugPrint('❌ Refresh error: $e');
+      // Out-of-bounds safety check for short error strings
+      _statusMsg = 'Error: ${errStr.length > 50 ? errStr.substring(0, 50) : errStr}';
       notifyListeners();
+    } finally {
+      _isFetching = false; // Re-open access gate
     }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    WakelockPlus.disable();
-    super.dispose();
   }
 }
