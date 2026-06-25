@@ -14,11 +14,13 @@ workflows:
         - pattern: '*'
           include: true
     scripts:
-      - name: Configure platform environments and patch default boilerplate tests
+      - name: Recreate Android platform wrapper to clear legacy v1 embedding definitions
         script: |
-          mkdir -p android
+          # Clean out outdated android wrapper directory to resolve embedding errors
+          rm -rf android
+          flutter create . --platforms=android
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-          # Clear out the default placeholder widget test causing the 'MyApp' compilation error
+          # Clear out the default boilerplate widget test if it causes any compilation errors
           rm -f test/widget_test.dart
       - name: Clean previous builds
         script: |
