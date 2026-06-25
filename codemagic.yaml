@@ -29,7 +29,7 @@ workflows:
           flutter pub cache repair
       - name: Run code validation checks and linter analysis
         script: |
-      - name: Run Flutter validation tests
+      - name: Run Flutter validation tests --no-fatal-infos
         script: |
           flutter test
       - name: Install iOS pods (if needed)
