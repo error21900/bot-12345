@@ -14,9 +14,6 @@ workflows:
         - pattern: '*'
           include: true
     scripts:
-      - name: Show Flutter version (for debugging)
-        script: |
-          flutter --version
       - name: Create local config components for Android mapping
         script: |
           mkdir -p android
