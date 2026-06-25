@@ -1,0 +1,41 @@
+workflows:
+  saad-bot-pipeline:
+    name: Saad Trading Bot Production Engine Build
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: '*'
+          include: true
+    scripts:
+      - name: Create local config components for Android mapping
+        script: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+      - name: Fetch project package dependencies
+        script: |
+          flutter pub get
+      - name: Run code validation checks and linter analysis
+        script: |
+          flutter analyze
+      - name: Run Flutter validation tests
+        script: |
+          flutter test
+      - name: Build Android Release Application Package (APK)
+        script: |
+          flutter build apk --release
+      - name: Build Android Production App Bundle (AAB)
+        script: |
+          flutter build appbundle --release
+      - name: Build iOS Unsigned Device Package Bundle
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - 'build/app/outputs/flutter-apk/*.apk'
+      - 'build/app/outputs/bundle/release/*.aab'
+      - 'build/ios/iphoneos/*.app'
