@@ -21,7 +21,7 @@ void main() {
 }
 
 class SaadBotApp extends StatelessWidget {
-  const SaadBotApp({Key? key}) : super(key: key);
+  const SaadBotApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class SaadBotApp extends StatelessWidget {
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -82,13 +82,12 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _statusMsg = '✅ Credentials found. Auto-logging in...');
 
         await Future.delayed(const Duration(milliseconds: 500));
-        // FIX: Guard with mounted check before calling async navigation
         if (mounted) {
-          _handleConnect(autoLogin: true);
+          _handleConnect();
         }
       }
     } catch (e) {
-      print('Error checking saved credentials: $e');
+      debugPrint('Error checking saved credentials: $e');
       if (mounted) {
         setState(() => _statusMsg = 'Error loading saved credentials');
       }
@@ -102,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleConnect({bool autoLogin = false}) async {
+  Future<void> _handleConnect() async {
     final key = _apiKeyController.text.trim();
     final secret = _apiSecretController.text.trim();
 
@@ -133,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('bybit_api_key', key);
         await prefs.setString('bybit_api_secret', secret);
       } catch (e) {
-        print('⚠️ Warning: Could not save credentials: $e');
+        debugPrint('⚠️ Warning: Could not save credentials: $e');
       }
 
       if (!mounted) return;
@@ -202,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00C087).withOpacity(0.3),
+                          color: const Color(0xFF00C087).withValues(alpha: 0.3),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -274,12 +273,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: _statusMsg.contains('❌')
-                        ? Colors.red.withOpacity(0.1)
-                        : const Color(0xFF00C087).withOpacity(0.1),
+                        ? Colors.red.withValues(alpha: 0.1)
+                        : const Color(0xFF00C087).withValues(alpha: 0.1),
                     border: Border.all(
                       color: _statusMsg.contains('❌')
-                          ? Colors.red.withOpacity(0.5)
-                          : const Color(0xFF00C087).withOpacity(0.5),
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : const Color(0xFF00C087).withValues(alpha: 0.5),
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -299,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : () => _handleConnect(),
+                  onPressed: _isLoading ? null : _handleConnect,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00C087),
                     disabledBackgroundColor: Colors.grey[800],
