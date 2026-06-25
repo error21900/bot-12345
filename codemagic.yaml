@@ -16,6 +16,7 @@ workflows:
     scripts:
       - name: Create local config components for Android mapping
         script: |
+          mkdir -p android
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
       - name: Clean previous builds
         script: |
