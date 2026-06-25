@@ -14,6 +14,9 @@ workflows:
         - pattern: '*'
           include: true
     scripts:
+      - name: Show Flutter version (for debugging)
+        script: |
+          flutter --version
       - name: Create local config components for Android mapping
         script: |
           mkdir -p android
@@ -24,7 +27,7 @@ workflows:
       - name: Fetch project package dependencies
         script: |
           flutter pub get
-      - name: Run code validation checks and linter analysis
+      - name: Run code validation checks and linter analysis (ignore deprecation warnings)
         script: |
           flutter analyze --no-fatal-infos
       - name: Run Flutter validation tests (if any)
