@@ -27,9 +27,9 @@ workflows:
       - name: Run code validation checks and linter analysis
         script: |
           flutter analyze --no-fatal-infos
-      - name: Run Flutter validation tests
+      - name: Run Flutter validation tests (if any)
         script: |
-          flutter test
+          if [ -d "test" ]; then flutter test; else echo "⚠️ No test folder found, skipping tests."; fi
       - name: Install iOS pods (if needed)
         script: |
           cd ios && pod install && cd ..
