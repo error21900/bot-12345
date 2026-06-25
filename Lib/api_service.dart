@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
@@ -8,7 +9,9 @@ import 'trade_model.dart';
 class ApiService {
   final String apiKey;
   final String apiSecret;
-  static const String _baseUrl = 'https://api-demo.bybit.com';
+  
+  // ✅ CORRECT ENDPOINT - Works for both live and demo accounts
+  static const String _baseUrl = 'https://api.bybit.com';
 
   ApiService({required this.apiKey, required this.apiSecret});
 
@@ -33,24 +36,36 @@ class ApiService {
 
   Future<void> testConnection() async {
     try {
+      debugPrint('🔗 Testing connection to Bybit...');
       const qs = 'category=linear&coin=USDT';
       final uri = Uri.parse('$_baseUrl/v5/account/wallet-balance?$qs');
+      
       final res = await http
           .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
+      
+      debugPrint('📡 Response status: ${res.statusCode}');
+      
       final body = jsonDecode(res.body);
 
       if (body['retCode'] != 0) {
-        throw Exception(body['retMsg'] ?? 'Authentication failed');
+        throw Exception('Auth Error: ${body['retMsg'] ?? 'Unknown error'}');
       }
       if (body['result'] == null) {
-        throw Exception('Invalid account structure - result is null');
+        throw Exception('Invalid response structure');
       }
-      debugPrint('✅ Connection test successful!');
-    } on SocketException {
-      throw Exception(
-          'Network error: Unable to reach Bybit servers. Check your internet connection.');
+      debugPrint('✅ Connection test SUCCESSFUL!');
+    } on SocketException catch (e) {
+      debugPrint('❌ Socket Error: $e');
+      throw Exception('Network error: Unable to reach Bybit. Check internet connection.');
+    } on TimeoutException catch (e) {
+      debugPrint('❌ Timeout: $e');
+      throw Exception('Connection timeout: Bybit servers are unreachable or very slow.');
+    } on Exception catch (e) {
+      debugPrint('❌ Exception: $e');
+      throw Exception('Connection failed: ${e.toString()}');
     } catch (e) {
+      debugPrint('❌ Unknown error: $e');
       throw Exception('Connection failed: ${e.toString()}');
     }
   }
@@ -61,7 +76,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/account/wallet-balance?$qs');
       final res = await http
           .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
       final body = jsonDecode(res.body);
 
       if (body['retCode'] == 0) {
@@ -90,7 +105,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/position/list?$qs');
       final res = await http
           .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
       final body = jsonDecode(res.body);
 
       if (body['retCode'] == 0) {
@@ -126,7 +141,7 @@ class ApiService {
     try {
       final uri = Uri.parse(
           '$_baseUrl/v5/market/kline?category=linear&symbol=$symbol&interval=$interval&limit=$limit');
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      final res = await http.get(uri).timeout(const Duration(seconds: 15));
       final body = jsonDecode(res.body);
 
       if (body['retCode'] == 0) {
@@ -149,34 +164,38 @@ class ApiService {
     }
   }
 
-  // OPTIMIZED: Fetches all ticker information in 1 single network request instead of 4
   Future<Map<String, Map<String, dynamic>>> fetchLivePrices() async {
-    final result = <String, Map<String, dynamic>>{
-      'BTCUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-      'SOLUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-      'LINKUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-      'XRPUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
-    };
+    const coins = ['BTCUSDT', 'SOLUSDT', 'LINKUSDT', 'XRPUSDT'];
+    final result = <String, Map<String, dynamic>>{};
 
-    try {
-      final uri = Uri.parse('$_baseUrl/v5/market/tickers?category=linear');
-      final res = await http.get(uri).timeout(const Duration(seconds: 8));
-      final body = jsonDecode(res.body);
+    Future<MapEntry<String, Map<String, dynamic>>> fetchOne(
+        String coin) async {
+      try {
+        final uri = Uri.parse(
+            '$_baseUrl/v5/market/tickers?category=linear&symbol=$coin');
+        final res = await http.get(uri).timeout(const Duration(seconds: 10));
+        final body = jsonDecode(res.body);
 
-      if (body['retCode'] == 0) {
-        final list = body['result']?['list'] as List? ?? [];
-        for (final item in list) {
-          final sym = item['symbol']?.toString() ?? '';
-          if (result.containsKey(sym)) {
-            result[sym] = {
+        if (body['retCode'] == 0) {
+          final list = body['result']?['list'] as List? ?? [];
+          if (list.isNotEmpty) {
+            final item = list[0];
+            return MapEntry(coin, {
               'lastPrice': item['lastPrice']?.toString() ?? '0',
               'price24hPcnt': item['price24hPcnt']?.toString() ?? '0',
-            };
+            });
           }
         }
+      } catch (e) {
+        debugPrint('Error fetching price for $coin: $e');
       }
-    } catch (e) {
-      debugPrint('Error fetching live prices: $e');
+      return MapEntry(coin, {'lastPrice': '0', 'price24hPcnt': '0'});
+    }
+
+    final entries =
+        await Future.wait(coins.map((c) => fetchOne(c)));
+    for (final entry in entries) {
+      result[entry.key] = entry.value;
     }
     return result;
   }
@@ -201,7 +220,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/order/create');
       final res = await http
           .post(uri, headers: _headers(body: bodyStr), body: bodyStr)
-          .timeout(const Duration(seconds: 12));
+          .timeout(const Duration(seconds: 15));
       final resBody = jsonDecode(res.body);
 
       if (resBody['retCode'] == 0) {
@@ -229,45 +248,49 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/v5/position/set-leverage');
       await http
           .post(uri, headers: _headers(body: bodyStr), body: bodyStr)
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
       debugPrint('✅ Leverage set to $leverage for $symbol');
     } catch (e) {
       debugPrint('Error setting leverage: $e');
     }
   }
 
-  // OPTIMIZED: Replaced the 4-loop call structure with 1 unified history block check
   Future<List<Trade>> fetchRecentTrades() async {
     final trades = <Trade>[];
-    const targetCoins = {'BTCUSDT', 'SOLUSDT', 'LINKUSDT', 'XRPUSDT'};
+    const coins = ['BTCUSDT', 'SOLUSDT', 'LINKUSDT', 'XRPUSDT'];
 
-    try {
-      const qs = 'category=linear&limit=20';
-      final uri = Uri.parse('$_baseUrl/v5/order/history?$qs');
-      final res = await http
-          .get(uri, headers: _headers(queryString: qs))
-          .timeout(const Duration(seconds: 10));
-      final body = jsonDecode(res.body);
+    Future<List<Trade>> fetchForCoin(String coin) async {
+      final coinTrades = <Trade>[];
+      try {
+        final qs = 'category=linear&symbol=$coin&limit=3';
+        final uri = Uri.parse('$_baseUrl/v5/order/history?$qs');
+        final res = await http
+            .get(uri, headers: _headers(queryString: qs))
+            .timeout(const Duration(seconds: 15));
+        final body = jsonDecode(res.body);
 
-      if (body['retCode'] == 0) {
+        if (body['retCode'] != 0) return [];
+
         final list = body['result']?['list'] as List? ?? [];
         for (final o in list) {
           if (o['orderStatus'] != 'Filled') continue;
-          
-          final sym = o['symbol']?.toString() ?? '';
-          if (!targetCoins.contains(sym)) continue;
-
-          trades.add(Trade(
-            symbol: sym,
+          coinTrades.add(Trade(
+            symbol: o['symbol']?.toString() ?? coin,
             direction: o['side']?.toString() == 'Buy' ? 'LONG' : 'SHORT',
             price: double.tryParse(o['avgPrice'].toString()) ?? 0,
             quantity: double.tryParse(o['qty'].toString()) ?? 0,
             timestamp: _formatTime(o['createdTime']?.toString() ?? '0'),
           ));
         }
+      } catch (e) {
+        debugPrint('Error fetching trades for $coin: $e');
       }
-    } catch (e) {
-      debugPrint('Error fetching unified trades: $e');
+      return coinTrades;
+    }
+
+    final results = await Future.wait(coins.map((c) => fetchForCoin(c)));
+    for (final list in results) {
+      trades.addAll(list);
     }
 
     trades.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -276,7 +299,7 @@ class ApiService {
 
   String _formatTime(String msStr) {
     try {
-      final ms = int.parse(msStr);
+      final ms = int.tryParse(msStr) ?? 0;
       if (ms == 0) return '--:--:--';
       final dt = DateTime.fromMillisecondsSinceEpoch(ms);
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
