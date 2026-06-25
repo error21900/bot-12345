@@ -40,7 +40,7 @@ class TradingProvider extends ChangeNotifier {
 
   bool _isRunning = false;
   bool _isInitialized = false;
-  bool _isFetching = false; // Concurrency gate variable
+  bool _isFetching = false; // Concurrency protection gate
   double _balance = 0.0;
   double _totalPnL = 0.0;
   String _lastUpdate = '--:--:--';
@@ -50,11 +50,11 @@ class TradingProvider extends ChangeNotifier {
   Map<String, Position> _positions = {};
   List<Trade> _trades = [];
   Map<String, dynamic> _livePrices = {
-    'BTCUSDT': {'price': '0.00', 'change': '0.00%'},
-    'ETHUSDT': {'price': '0.00', 'change': '0.00%'},
-    'SOLUSDT': {'price': '0.00', 'change': '0.00%'},
+    'BTCUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
+    'SOLUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
+    'LINKUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
+    'XRPUSDT': {'lastPrice': '0', 'price24hPcnt': '0'},
   };
-
   Timer? _timer;
 
   bool get isRunning => _isRunning;
@@ -68,25 +68,39 @@ class TradingProvider extends ChangeNotifier {
   List<Trade> get trades => _trades;
   Map<String, dynamic> get livePrices => _livePrices;
 
-  void setTimeframe(String value) {
-    _selectedTimeframe = value;
-    notifyListeners();
+  void initialize(ApiService api) {
+    try {
+      _api = api;
+      _isInitialized = true;
+      _statusMsg = 'Ready to start';
+      debugPrint('✅ TradingProvider initialized successfully');
+      notifyListeners();
+    } catch (e) {
+      _statusMsg = 'Initialization error: $e';
+      debugPrint('❌ Initialization error: $e');
+      notifyListeners();
+    }
   }
 
-  void initialize(String apiKey, String apiSecret) {
-    _api = ApiService(apiKey: apiKey, apiSecret: apiSecret);
-    _isInitialized = true;
-    _statusMsg = 'API Configured Ready';
+  void updateTimeframe(String timeframe) {
+    _selectedTimeframe = timeframe;
+    _statusMsg = 'Timeframe switched to ${timeframe}M';
     notifyListeners();
   }
 
   void startBot() {
+    if (!_isInitialized) {
+      _statusMsg = 'Bot not initialized. Please log in again.';
+      notifyListeners();
+      return;
+    }
     if (_isRunning) return;
+
     _isRunning = true;
     _statusMsg = 'Bot is RUNNING';
     WakelockPlus.enable();
     notifyListeners();
-    _startLoop();
+    _startPolling();
   }
 
   void stopBot() {
@@ -97,7 +111,9 @@ class TradingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _startLoop() {
+  void cancelPolling() => _timer?.cancel();
+
+  void _startPolling() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
   }
@@ -109,8 +125,7 @@ class TradingProvider extends ChangeNotifier {
       return;
     }
 
-    // Safety Engine: Block concurrent sync processes if network slows down
-    if (_isFetching) return;
+    if (_isFetching) return; // Drop overlapping cycles if network is hanging
     _isFetching = true;
 
     try {
@@ -143,11 +158,19 @@ class TradingProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       final errStr = e.toString();
-      // Out-of-bounds safety check for short error strings
-      _statusMsg = 'Error: ${errStr.length > 50 ? errStr.substring(0, 50) : errStr}';
+      _statusMsg =
+          'Error: ${errStr.length > 60 ? '${errStr.substring(0, 60)}...' : errStr}';
+      debugPrint('❌ Refresh error: $e');
       notifyListeners();
     } finally {
-      _isFetching = false; // Re-open access gate
+      _isFetching = false;
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    WakelockPlus.disable();
+    super.dispose();
   }
 }
