@@ -30,18 +30,18 @@ workflows:
       - name: Run Flutter validation tests (if any)
         script: |
           if [ -d "test" ]; then flutter test; else echo "⚠️ No test folder found, skipping tests."; fi
-      - name: Install iOS pods (if needed)
+      - name: Install iOS pods (if iOS folder exists)
         script: |
-          cd ios && pod install && cd ..
+          if [ -d "ios" ]; then cd ios && pod install && cd ..; else echo "⚠️ iOS folder not found, skipping pod install."; fi
       - name: Build Android Release APK (split per ABI)
         script: |
           flutter build apk --release --split-per-abi
       - name: Build Android Production App Bundle (AAB)
         script: |
           flutter build appbundle --release
-      - name: Build iOS Unsigned Device Package Bundle
+      - name: Build iOS Unsigned Device Package Bundle (if iOS folder exists)
         script: |
-          flutter build ios --release --no-codesign --verbose
+          if [ -d "ios" ]; then flutter build ios --release --no-codesign --verbose; else echo "⚠️ iOS folder not found, skipping iOS build."; fi
     artifacts:
       - 'build/app/outputs/apk/release/*.apk'
       - 'build/app/outputs/bundle/release/*.aab'
